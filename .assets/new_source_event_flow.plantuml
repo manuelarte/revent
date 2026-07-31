@@ -1,0 +1,20 @@
+@startuml
+database "R-Event" as Server order 100
+participant Client1 as Client1 order 75
+participant Client2 as Client2 order 50
+participant Client3 as Client3 order 25
+
+== Registering Event ==
+
+Client1 -> Server: RegisterSourceEvent: Event(uuid1)
+activate Client1
+Server --> Client1: SourceEventRegistered(uuid1)
+deactivate Client1
+
+== Broadcast Source Event ==
+
+Server -> Client1: SourceEvent(uuid1)
+Server -> Client2: SourceEvent(uuid1)
+Server -> Client3: SourceEvent(uuid1)
+
+@enduml

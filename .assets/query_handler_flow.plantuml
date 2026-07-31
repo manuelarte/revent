@@ -1,0 +1,27 @@
+@startuml
+database "R-Event" as Server order 50
+participant QueryRequester as Client1 order 0
+participant QueryResponder as Client2 order 100
+
+== Registering ==
+
+Client1 -> Server: RegisterClient
+activate Client1
+Server --> Client1: ClientRegistered
+deactivate Client1
+
+Client2 -> Server: RegisterClient(users.GetAll)
+activate Client2
+Server --> Client2: ClientRegistered
+deactivate Client2
+
+== Query Handling ==
+
+Client1 -> Server: QueryRequest(id1, users.GetAll)
+activate Client1
+Server -> Client2: QueryRequested(id1, users.GetAll)
+Client2 --> Server: QueryResponse(id1, users.GetAll)
+Server --> Client1: QueryResponded(id1, users.GetAll)
+deactivate Client1
+
+@enduml

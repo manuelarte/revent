@@ -1,0 +1,101 @@
+// (-- api-linter: core::0191::proto-package=disabled
+//     aip.dev/not-precedent: We need to do this because reasons. --)
+// (-- api-linter: core::0136::request-message-name=disabled
+//     aip.dev/not-precedent: It is a stream. --)
+// (-- api-linter: core::0136::response-message-name=disabled
+//     aip.dev/not-precedent: It is a stream. --)
+syntax = "proto3";
+
+package revent.v1;
+
+option java_package = "revent.v1";
+option java_multiple_files = true;
+option java_outer_classname = "ControlProto";
+
+import "google/api/field_behavior.proto";
+import "revent/v1/query_messages.proto";
+import "revent/v1/event_messages.proto";
+
+/**
+ * Control provides bidirectional communication between clients and the server.
+ */
+service Control {
+    // OpenSession opens a bidirectional stream between a client and the server.
+    rpc OpenSession(stream ClientToServerMessage) returns (stream ServerToClientMessage) {}
+}
+
+/**
+ * ClientToServerMessage contains messages sent from the client to the server over Connect.
+ */
+message ClientToServerMessage {
+    oneof payload {
+        // Registers a client with the server.
+        RegisterClient register_client = 1;
+        // Submits a query request.
+        QueryRequest query_request = 2;
+        // Provides a query result in response to a QueryRequested message.
+        QueryResponse query_response = 3;
+        // Indicates that an event happened.
+        RegisterSourceEvent register_source_event = 4;
+        // Indicates that the client is still connected.
+        Heartbeat heartbeat = 5;
+    }
+}
+
+/**
+ * RegisterClient registers a client and declares the queries it can handle.
+ */
+message RegisterClient {
+    // Identifier of the client registering with the server.
+    string client_id = 1 [(google.api.field_behavior) = REQUIRED];
+    // Query IDs this client can handle.
+    repeated string query_handlers = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+/**
+ * Heartbeat indicates liveness of the sender.
+ */
+message Heartbeat {}
+
+/**
+ * ServerToClientMessage contains messages sent from the server to the client over Connect.
+ */
+message ServerToClientMessage {
+    oneof payload {
+        // Confirms that the client registration was accepted.
+        ClientRegistered client_registered = 1;
+        // Requests a client to handle a query.
+        QueryRequested query_requested = 2;
+        // Returns a query result to the requesting client.
+        QueryResponded query_responded = 3;
+        // Checks whether the client is still alive.
+        Heartbeat heartbeat = 4;
+
+        // Indicates that the client could not get registered.
+        ClientRegistrationError client_registration_error = 5;
+        // Indicates that there was a problem handling the query requested.
+        QueryRequestedError query_requested_error = 6;
+        // Indicates that the server has received the event and stored it.
+        SourceEventRegistered source_event_registered = 7;
+        // Send the event to all the clients.
+        SourceEvent source_event = 8;
+    }
+}
+
+/**
+ * ClientRegistered confirms that a client has been registered.
+ */
+message ClientRegistered {
+    // Identifier of the registered client.
+    string client_id = 1;
+}
+
+/**
+ * ClientRegistrationError indicates that the client could not get registered.
+ */
+message ClientRegistrationError {
+    // Identifier of the client that is not valid.
+    string client_id = 1;
+    // Reason why the client could not register.
+    string reason = 2;
+}

@@ -1,0 +1,68 @@
+// (-- api-linter: core::0191::proto-package=disabled
+//     aip.dev/not-precedent: We need to do this because reasons. --)
+syntax = "proto3";
+
+package revent.v1;
+
+option java_package = "revent.v1";
+option java_multiple_files = true;
+option java_outer_classname = "QueryMessagesProto";
+
+import "google/api/field_behavior.proto";
+import "google/api/field_info.proto";
+
+/**
+ * QueryRequest represents a query initiated by a client.
+ */
+message QueryRequest {
+    // Unique identifier for this request.
+    string request_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_info).format = UUID4];
+    // Identifier of the query to execute.
+    string query_id = 2 [(google.api.field_behavior) = REQUIRED];
+    // Query parameters, when applicable.
+    map<string, string> parameters = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+/**
+ * QueryResponse contains the result for a previously requested query.
+ */
+message QueryResponse {
+    // Unique identifier for this request.
+    string request_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_info).format = UUID4];
+    // Query result encoded as JSON bytes.
+    bytes result = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+/**
+ * QueryRequested asks a responder client to handle a query.
+ */
+message QueryRequested {
+    // Unique identifier for this request.
+    string request_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_info).format = UUID4];
+    // Identifier of the query to execute.
+    string query_id = 2 [(google.api.field_behavior) = REQUIRED];
+    // Query parameters, when applicable.
+    map<string, string> parameters = 3;
+}
+
+/**
+ * QueryResponded returns a query result to the requesting client.
+ */
+message QueryResponded {
+    // Unique identifier for this request.
+    string request_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_info).format = UUID4];
+    // Query result encoded as JSON bytes.
+    bytes result = 2;
+}
+
+/**
+ * QueryRequestedError is sent when there is an error processing a QueryRequest message.
+ */
+message QueryRequestedError {
+    // Unique identifier for this request.
+    string request_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_info).format = UUID4];
+    // Identifier of the query.
+    string query_id = 2 [(google.api.field_behavior) = REQUIRED];
+    // Reason why the query could not be handled.
+    string reason = 3 [(google.api.field_behavior) = REQUIRED];
+}

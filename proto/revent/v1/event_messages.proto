@@ -1,0 +1,51 @@
+// (-- api-linter: core::0191::proto-package=disabled
+//     aip.dev/not-precedent: We need to do this because reasons. --)
+syntax = "proto3";
+
+package revent.v1;
+
+option java_package = "revent.v1";
+option java_multiple_files = true;
+option java_outer_classname = "EventMessagesProto";
+
+import "google/api/field_behavior.proto";
+import "google/api/field_info.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+/**
+ * RegisterSourceEvent message sent by a client to indicate that an event happened.
+ */
+message RegisterSourceEvent {
+    // Unique identifier of the event.
+    string event_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_info).format = UUID4];
+    // Unique identifier of the aggregate.
+    string aggregate_id = 2 [(google.api.field_behavior) = REQUIRED];
+    // Type of the aggregate that generated the event.
+    string aggregate_type = 3 [(google.api.field_behavior) = REQUIRED];
+    // Event encoded as JSON bytes.
+    bytes payload = 4 [(google.api.field_behavior) = REQUIRED];
+    // Metadata information of the event.
+    map<string, string> metadata = 5 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message SourceEventRegistered {
+    // Unique identifier of the event.
+    string event_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_info).format = UUID4];
+    uint64 monotonic_clock = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message SourceEvent {
+    // unique identifier of the event.
+    string id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_info).format = UUID4];
+    // time when the event was stored in the server.
+    google.protobuf.Timestamp created_at = 2 [(google.api.field_behavior) = REQUIRED];
+    // represents the monotonic clock of the event.
+    uint64 monotonic_clock = 3 [(google.api.field_behavior) = REQUIRED];
+    /// unique identifier of the aggregate type.
+    string aggregate_type = 4 [(google.api.field_behavior) = REQUIRED];
+    // unique identifier of the aggregate instance.
+    string aggregate_id = 5 [(google.api.field_behavior) = REQUIRED];
+    // the serialized event.
+    google.protobuf.Struct payload = 6 [(google.api.field_behavior) = REQUIRED];
+}

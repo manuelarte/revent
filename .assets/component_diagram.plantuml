@@ -1,0 +1,23 @@
+@startuml
+
+left to right direction
+
+rectangle [R-Event] as Server {
+    portin gRPC
+    portin REST
+    component "State" as State
+    database "Event Store" as DB
+
+    gRPC -- State
+    REST -- State
+    State -- DB: read/write
+
+}
+
+person Client1
+person Client2
+
+Client1 <--> gRPC: stream
+Client2 <--> gRPC: stream
+
+@enduml

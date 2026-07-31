@@ -1,0 +1,328 @@
+openapi: 3.2.0
+info:
+  title: R-Event API
+  version: 0.1.0
+  description: API for R-Event server
+  contact:
+    name: manuelarte
+    url: https://github.com/manuelarte
+servers:
+  - url: http://localhost:10001
+    name: Localhost
+    description: Local development server.
+paths:
+  /actuator/info:
+    get:
+      operationId: getApplicationInfo
+      summary: Get application info
+      tags:
+        - actuators
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationInfo'
+  /api/clients:
+    get:
+      operationId: getClients
+      summary: Get list of clients
+      tags:
+        - clients
+      parameters:
+        - name: offset
+          in: query
+          description: The number of elements to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+            maximum: 100000
+        - name: limit
+          in: query
+          description: The maximum number of elements to return.
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page<Client>'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/clients/{id}:
+    get:
+      operationId: getClient
+      summary: Get client by id
+      tags:
+        - clients
+      parameters:
+        - name: id
+          in: path
+          description: The id of the client.
+          required: true
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '400':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/source-events:
+    get:
+      operationId: getEvents
+      summary: Get list of events
+      tags:
+        - events
+      parameters:
+        - name: cursor
+          in: query
+          description: The cursor for pagination representing the monotonic clock.
+          required: false
+          schema:
+            type: integer
+            format: int64
+            default: 0
+            minimum: 0
+        - name: limit
+          in: query
+          description: The maximum number of events to return.
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CursorPage<SourceEvent>'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    # keep-sorted start
+    ApplicationInfo:
+      type: object
+      required: [name, version]
+      properties:
+        name:
+          type: string
+          description: The application name.
+        version:
+          type: string
+          description: The application version.
+        environment:
+          type: string
+          description: The current environment.
+        git_info:
+          type: object
+          description: The git information.
+          properties:
+            branch:
+              type: string
+              description: The branch the application is running on.
+            commit_id:
+              type: string
+              description: The commit ID of the application.
+    Client:
+      type: object
+      required: [id, since, last_seen, query_handlers]
+      properties:
+        id:
+          type: string
+          description: The ID of the client.
+        since:
+          type: string
+          format: date-time
+          description: The time the client was first connected to the server.
+        last_seen:
+          type: integer
+          format: int64
+          description: The last time in seconds that the client either received or sent a message.
+          minimum: 0
+        query_handlers:
+          type: array
+          items:
+            type: string
+    ClientInPage:
+      type: object
+      required: [id, since, link]
+      properties:
+        id:
+          type: string
+          description: The ID of the client.
+        since:
+          type: string
+          format: date-time
+          description: The time the client was first connected to the server.
+        link:
+          type: string
+          format: uri
+          description: The URL of the details to the client.
+    CursorPage<SourceEvent>:
+      type: object
+      required: [content, cursor, limit, size, total_elements]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceEvent'
+        cursor:
+          type: integer
+          format: int64
+          description: The cursor position.
+          minimum: 0
+        limit:
+          type: integer
+          description: The maximum number of elements in the page.
+          minimum: 1
+          maximum: 50
+        size:
+          type: integer
+          description: The number of events in the page.
+        total_elements:
+          type: integer
+          description: The total number of events.
+        next:
+          type: string
+          format: uri
+        prev:
+          type: string
+          format: uri
+    ErrorDetail:
+      type: object
+      required: [reason, message, location_type]
+      properties:
+        reason:
+          type: string
+          description: The reason for the error.
+        message:
+          type: string
+          description: A human-readable error message.
+        location_type:
+          type: string
+          description: The type of location where the error occurred.
+    ErrorResponse:
+      type: object
+      required: [code, message, errors]
+      properties:
+        code:
+          type: integer
+          description: The status code returned.
+        message:
+          type: string
+          description: A human-readable error message.
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+    Page<Client>:
+      type: object
+      required: [content, offset, limit, size, total_elements, total_pages]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientInPage'
+        offset:
+          type: integer
+          description: The number of elements skipped before the first element in the page.
+          minimum: 0
+          maximum: 100000
+        limit:
+          type: integer
+          description: The maximum number of elements in the page.
+          minimum: 1
+          maximum: 100
+        size:
+          type: integer
+          description: The number of elements in the page.
+        total_elements:
+          type: integer
+          description: The total number of elements across all pages.
+        total_pages:
+          type: integer
+          description: The total number of pages.
+        next:
+          type: string
+          format: uri
+        prev:
+          type: string
+          format: uri
+    SourceEvent:
+      type: object
+      required: [id, created_at, monotonic_clock, aggregate_type, aggregate_id, payload]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The unique identifier of the event.
+        created_at:
+          type: string
+          format: date-time
+          description: The time the event was created.
+        monotonic_clock:
+          type: integer
+          format: int64
+          description: The monotonic clock time.
+          minimum: 0
+        aggregate_type:
+          type: string
+          description: The type of the aggregate.
+        aggregate_id:
+          type: string
+          description: The unique identifier of the aggregate.
+        payload:
+          type: string
+          contentMediaType: application/json
+          description: The payload of the event.
+    # keep-sorted end
+
+tags:
+  # keep-sorted start
+  - name: actuators
+    summary: Actuators
+    description: Actuators endpoints
+  - name: clients
+    summary: Clients
+    description: Clients endpoints
+  - name: events
+    summary: Events
+    description: Events endpoints
+  # keep-sorted end

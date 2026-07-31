@@ -1,0 +1,25 @@
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Build output and caches
+target
+debug
+release
+
+# Local environment and secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Local tooling and docs that are not needed to build the binary
+examples
+resources/opentelemetry
+README.md
+TODO.md
+docker-compose.yml
+justfile
+
