@@ -44,8 +44,6 @@ fn start_server(
 ) {
     let cfg = envy::from_iter::<_, Config>(env_vars).expect("failed to build config");
 
-    let grpc_endpoint = format!("http://[::1]:{grpc_port}");
-    let rest_endpoint = format!("http://127.0.0.1:{rest_port}");
     let server_task = tokio::spawn(async move {
         let repository = RustLiteSourceEventRepository::new()
             .await
@@ -67,6 +65,8 @@ fn start_server(
         );
     });
 
+    let grpc_endpoint = format!("http://127.0.0.1:{grpc_port}");
+    let rest_endpoint = format!("http://127.0.0.1:{rest_port}");
     world.endpoint = Some(grpc_endpoint);
     world.rest_endpoint = Some(rest_endpoint);
     world.server_task = Some(server_task);

@@ -89,14 +89,6 @@ impl<R: Repository + 'static> Control for ControlService<R> {
                 }
             }
 
-            // Cleanup on disconnect
-            info!(
-                client_id = client_id_option
-                    .clone()
-                    .map_or_else(String::new, |id| id.to_string()),
-                "Disconnecting client"
-            );
-
             let Some(client_id) = client_id_option else {
                 warn!("Client ID not set, skipping disconnect handling");
                 return;
