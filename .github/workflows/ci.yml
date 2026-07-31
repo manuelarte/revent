@@ -34,9 +34,9 @@ jobs:
         run: cargo install just
 
       - name: Install dylint
-        run: cargo install dylint-link
+        run: cargo install cargo-dylint dylint-link
 
-      - name: Install linting tools
+      - name: Install cargo-deny
         run: cargo install --locked cargo-deny
 
       - name: Cache Cargo
