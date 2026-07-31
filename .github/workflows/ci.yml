@@ -28,12 +28,15 @@ jobs:
           components: clippy, rustfmt
 
       - name: Install protobuf compiler
-        run: apt-get update && apt-get install -y protobuf-compiler
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
 
       - name: Install just
         run: cargo install just
 
-      - name: Install linting tools
+      - name: Install dylint
+        run: cargo install cargo-dylint dylint-link
+
+      - name: Install cargo-deny
         run: cargo install --locked cargo-deny
 
       - name: Cache Cargo
