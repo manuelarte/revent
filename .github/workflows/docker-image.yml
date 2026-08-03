@@ -4,6 +4,10 @@ on:
   release:
     types:
       - published
+  # TEMP: enable push-based snapshot testing on non-main branches.
+  push:
+    branches-ignore:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -16,9 +20,10 @@ env:
 
 jobs:
   docker:
-    # Final release on release publication, snapshot on non-main manual dispatch.
+    # Final release on release publication, snapshot on non-main manual/temporary push.
     if: |
       (github.event_name == 'release') ||
+      (github.event_name == 'push' && github.ref != 'refs/heads/main') ||
       (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main')
     runs-on: ubuntu-latest
 
