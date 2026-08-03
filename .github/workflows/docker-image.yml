@@ -1,0 +1,86 @@
+name: Build and Publish Docker Image
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  docker:
+    # Final release on release publication, snapshot on non-main manual/temporary push.
+    if: |
+      (github.event_name == 'release') ||
+      (github.event_name == 'push' && github.ref != 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Extract crate version
+        id: version
+        shell: bash
+        run: |
+          version=$(grep '^version\s*=\s*"' Cargo.toml | head -1 | sed -E 's/version\s*=\s*"([^"]+)"/\1/')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Compute docker tags
+        id: tags
+        shell: bash
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          VERSION: ${{ steps.version.outputs.version }}
+          GH_EVENT_NAME: ${{ github.event_name }}
+          GH_RELEASE_TAG: ${{ github.event.release.tag_name }}
+          GH_REF_NAME: ${{ github.ref_name }}
+        run: |
+          image="$IMAGE"
+          version="$VERSION"
+
+          if [[ "$GH_EVENT_NAME" == "release" ]]; then
+            release_tag="$GH_RELEASE_TAG"
+            echo "tags<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$image:$release_tag" >> "$GITHUB_OUTPUT"
+            echo "$image:latest" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          else
+            branch="$GH_REF_NAME"
+            sanitized_branch=$(echo "$branch" | tr '/_' '-' | tr -cd '[:alnum:].-')
+            short_sha="${GITHUB_SHA::7}"
+            snapshot_tag="$version-$sanitized_branch-$short_sha-SNAPSHOT"
+
+            echo "tags<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$image:$snapshot_tag" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          provenance: false

@@ -25,7 +25,7 @@ jobs:
           check_filenames: true
           check_hidden: true
       - name: Check spelling of entire workspace
-        uses: crate-ci/typos@bee27e3a4fd1ea2111cf90ab89cd076c870fce14 # v1
+        uses: crate-ci/typos@bee27e3a4fd1ea2111cf90ab89cd076c870fce14 # v1.48.0
 
   file-linting:
     runs-on: ubuntu-latest
