@@ -4,10 +4,6 @@ on:
   release:
     types:
       - published
-  # TEMP: enable push-based snapshot testing on non-main branches.
-  push:
-    branches-ignore:
-      - main
   workflow_dispatch:
 
 permissions:
