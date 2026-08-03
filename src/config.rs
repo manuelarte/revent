@@ -158,7 +158,7 @@ impl Config {
     #[must_use]
     pub fn get_grpc_address(&self) -> SocketAddr {
         let port = self.server_grpc_port();
-        format!("[::1]:{port}")
+        format!("0.0.0.0:{port}")
             .parse()
             .expect("Failed to parse address")
     }
