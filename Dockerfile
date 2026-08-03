@@ -30,13 +30,15 @@ COPY openapi.yml ./openapi.yml
 COPY tests ./tests
 
 # Build with a locked dependency graph for reproducible installs.
+# The binary expects a .env file at startup.
 RUN cargo build --release --locked \
-    # The binary expects a .env file at startup
     && : > /tmp/.env
 
 FROM gcr.io/distroless/cc-debian12:nonroot AS runtime
 
 WORKDIR /app
+
+LABEL org.opencontainers.image.description="Rust gRPC server for CQRS-ES query handling and source event streaming."
 
 COPY --from=builder /app/target/release/revent /usr/local/bin/revent
 COPY --from=builder /tmp/.env /app/.env
@@ -47,4 +49,3 @@ EXPOSE 10000 10001
 ENV RUST_LOG=info
 
 ENTRYPOINT ["/usr/local/bin/revent"]
-
