@@ -35,10 +35,12 @@ message ClientToServerMessage {
         QueryRequest query_request = 2;
         // Provides a query result in response to a QueryRequested message.
         QueryResponse query_response = 3;
+        // QueryHandlingError indicates that there was a problem handling the query requested.
+        QueryHandlingError query_handling_error = 4;
         // Indicates that an event happened.
-        RegisterSourceEvent register_source_event = 4;
+        RegisterSourceEvent register_source_event = 5;
         // Indicates that the client is still connected.
-        Heartbeat heartbeat = 5;
+        Heartbeat heartbeat = 6;
     }
 }
 

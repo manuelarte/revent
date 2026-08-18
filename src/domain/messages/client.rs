@@ -5,6 +5,7 @@ use crate::domain::source_events::{AggregateId, EventId, EventPayload, NewSource
 use crate::domain::tx::Tx;
 use std::collections::HashMap;
 use std::fmt;
+use std::fmt::Display;
 use std::sync::Arc;
 
 /// `ClientMessage` that can be received from the `DomainNode`s.
@@ -16,6 +17,9 @@ pub enum ClientMessage {
     QueryRequest(QueryRequestMessage),
     /// `QueryResponse` is sent when a client replies to a query request.
     QueryResponse(QueryResponseMessage),
+    /// `QueryHandlingError` is sent when a client (responder) wants to indicate that there was an error
+    /// processing the query request.
+    QueryHandlingError(QueryHandlingErrorMessage),
     /// `PublishSourceEvent` is sent when an event happened.
     RegisterSourceEvent(RegisterSourceEventMessage),
     /// `Heartbeat` sent to check that the client is connected.
@@ -32,6 +36,7 @@ impl ClientMessage {
             Self::QueryResponse(msg) => Some(msg.responder()),
             Self::RegisterSourceEvent(msg) => Some(msg.source()),
             Self::Heartbeat { client_id } | Self::DisconnectClient { client_id } => Some(client_id),
+            Self::QueryHandlingError(msg) => Some(msg.responder()),
         }
     }
 }
@@ -178,6 +183,43 @@ impl QueryResponseMessage {
 }
 
 #[derive(Debug, Clone)]
+pub struct QueryHandlingErrorMessage {
+    request_id: RequestId,
+    responder: ClientId,
+    reason: QueryHandlingErrorReason,
+}
+
+impl QueryHandlingErrorMessage {
+    #[must_use]
+    pub(crate) fn new(
+        request_id: impl Into<RequestId>,
+        responder: impl Into<ClientId>,
+        reason: QueryHandlingErrorReason,
+    ) -> Self {
+        Self {
+            request_id: request_id.into(),
+            responder: responder.into(),
+            reason,
+        }
+    }
+
+    #[must_use]
+    pub(crate) const fn request_id(&self) -> &RequestId {
+        &self.request_id
+    }
+
+    #[must_use]
+    pub(crate) const fn responder(&self) -> &ClientId {
+        &self.responder
+    }
+
+    #[must_use]
+    pub(crate) const fn reason(&self) -> &QueryHandlingErrorReason {
+        &self.reason
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct RegisterSourceEventMessage {
     /// `source` client id that published the event.
     source: ClientId,
@@ -242,5 +284,28 @@ impl From<&RegisterSourceEventMessage> for NewSourceEvent {
             val.aggregate_type().to_string(),
             val.payload().clone(),
         )
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum QueryHandlingErrorReason {
+    // ErrorHandling is an error that occurred while the client was handling the query request.
+    ErrorHandling,
+    // Unknown is an error that occurred while the client was handling the query request, but the reason is unknown.
+    Unknown { details: Option<String> },
+}
+
+impl Display for QueryHandlingErrorReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ErrorHandling => write!(f, "Error handling the query request"),
+            Self::Unknown { details } => {
+                if let Some(details) = details {
+                    write!(f, "Unknown error handling the query request: {}", details)
+                } else {
+                    write!(f, "Unknown error handling the query request")
+                }
+            }
+        }
     }
 }

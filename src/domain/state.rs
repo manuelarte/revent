@@ -1,9 +1,6 @@
 use crate::config::Config;
 use crate::domain::client::ClientInfo;
-use crate::domain::messages::client::{
-    ClientMessage, QueryRequestMessage, QueryResponseMessage, RegisterClientMessage,
-    RegisterSourceEventMessage,
-};
+use crate::domain::messages::client::{ClientMessage, QueryHandlingErrorMessage, QueryRequestMessage, QueryResponseMessage, RegisterClientMessage, RegisterSourceEventMessage};
 use crate::domain::messages::server::ServerMessage::Heartbeat;
 use crate::domain::messages::server::{QueryRespondedMessage, ServerMessage};
 use crate::domain::messages::{QueryId, RequestId};
@@ -174,6 +171,9 @@ impl<R: Repository + 'static> State<R> {
             ClientMessage::RegisterClient(msg) => self.handle_register_client_message(msg).await,
             ClientMessage::QueryRequest(msg) => self.handle_query_request_message(msg).await,
             ClientMessage::QueryResponse(msg) => self.handle_query_response_message(msg).await,
+            ClientMessage::QueryHandlingError(msg) => {
+                self.handle_query_handling_error_message(msg).await;
+            }
             ClientMessage::RegisterSourceEvent(msg) => {
                 self.handle_register_source_event_message(msg).await;
             }
@@ -376,6 +376,52 @@ impl<R: Repository + 'static> State<R> {
         info!(responder_client_id = msg.responder().to_string(),
             request_id = %msg.request_id(),
             "Query responded"
+        );
+    }
+
+    async fn handle_query_handling_error_message(&self, msg: &QueryHandlingErrorMessage) {
+        let Some(ongoing_query_request) = self
+            .query_handlers
+            .get_ongoing_request(msg.request_id())
+            .await
+        else {
+            warn!(
+                request_id = %msg.request_id(),
+                "Query response received but request id not found"
+            );
+            return;
+        };
+
+        let requester = ongoing_query_request.requester();
+        let Some(requester_client_info) = self.get_client_by_id(requester).await else {
+            warn!(
+                request_id = %msg.request_id(), requester=%requester,
+                "Query handling error received but requester not found"
+            );
+            return;
+        };
+
+        // TODO(manuelarte): handle the error message, maybe send it to the requester, or log it, etc.
+        //if let Err(err) = requester_client_info
+            //.tx()
+            // TODO: this is wrong
+            //.send(ServerMessage::QueryResponded(QueryRespondedMessage::new(
+            //    msg.request_id().clone(),
+            //    msg.result(),
+            //)))
+            //.await
+        //{
+        //    error!(%err, request_id=%msg.request_id(), requester=%requester, "Can't send response for QueryResponseMessage to requester");
+        //    return;
+        //}
+
+        self.query_handlers
+            .remove_ongoing_request(msg.request_id())
+            .await;
+        info!(responder_client_id = msg.responder().to_string(),
+            request_id = %msg.request_id(),
+            error = %msg.reason(),
+            "Query handling failed with error"
         );
     }
 

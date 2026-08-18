@@ -4,13 +4,8 @@ use crate::api::grpc::control::protocontrol::{
     QueryRequest as QueryRequestProto, QueryRequested, QueryResponded, RegisterSourceEvent,
     ServerToClientMessage,
 };
-use crate::domain::messages::client::ClientMessage::{
-    Heartbeat, QueryRequest, QueryResponse, RegisterClient,
-};
-use crate::domain::messages::client::{
-    ClientMessage, QueryRequestMessage, QueryResponseMessage, RegisterClientMessage,
-    RegisterSourceEventMessage,
-};
+use crate::domain::messages::client::ClientMessage::{Heartbeat, QueryHandlingError, QueryRequest, QueryResponse, RegisterClient};
+use crate::domain::messages::client::{ClientMessage, QueryHandlingErrorMessage, QueryHandlingErrorReason, QueryRequestMessage, QueryResponseMessage, RegisterClientMessage, RegisterSourceEventMessage};
 use crate::domain::messages::server::{QueryRequestedMessage, QueryRespondedMessage};
 use crate::domain::messages::{InvalidQueryId, QueryId, RequestId};
 use crate::domain::source_events::{AggregateId, EventId, InvalidAggregateId};
@@ -20,6 +15,7 @@ use std::fmt::Display;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 use tonic::Status;
+use crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::{ErrorHandling, Unknown};
 
 #[derive(Debug)]
 pub(super) enum ClientMessageError {
@@ -125,6 +121,23 @@ impl ClientMessage {
                     qr.result.as_slice(),
                 )))
             }
+            Payload::QueryHandlingError(msg) => {
+                let Some(client_id) = client_id_option else {
+                    return Err(ClientMessageError::ClientNotRegistered);
+                };
+                // TODO(manuelarte): add reason
+                let reason = match msg.reason {
+                    Unknown => QueryHandlingErrorReason::Unknown{ details: msg.details},
+                    ErrorHandling => QueryHandlingErrorReason::ErrorHandling,
+                };
+                Ok(QueryHandlingError(QueryHandlingErrorMessage::new(
+                    msg.request_id
+                        .parse::<RequestId>()
+                        .expect("request id should be an uuid"),
+                    client_id,
+                    reason,
+                )))
+            },
             Payload::RegisterSourceEvent(msg) => {
                 let Some(client_id) = client_id_option else {
                     return Err(ClientMessageError::ClientNotRegistered);
