@@ -60,6 +60,7 @@ impl Tx for GrpcTx {
                     request_id: request_id.to_string(),
                     query_id: query_id.to_string(),
                     reason: reason.as_str().to_string(),
+                    details: reason.details().unwrap_or_default(),
                 },
             ),
             ServerMessage::SourceEventRegistered {

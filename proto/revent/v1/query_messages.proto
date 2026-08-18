@@ -85,4 +85,6 @@ message QueryRequestedError {
     string query_id = 2 [(google.api.field_behavior) = REQUIRED];
     // Reason why the query could not be handled.
     string reason = 3 [(google.api.field_behavior) = REQUIRED];
+    // Additional details about the error, if applicable.
+    string details = 4 [(google.api.field_behavior) = OPTIONAL];
 }

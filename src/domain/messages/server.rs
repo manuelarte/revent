@@ -1,5 +1,5 @@
 use crate::domain::ClientId;
-use crate::domain::messages::client::QueryRequestMessage;
+use crate::domain::messages::client::{QueryHandlingErrorReason, QueryRequestMessage};
 use crate::domain::messages::{QueryId, RequestId};
 use crate::domain::source_events::{EventId, SourceEvent};
 use std::collections::HashMap;
@@ -54,6 +54,7 @@ pub enum QueryRequestedErrorReason {
     RequestIdDuplicated,
     QueryHandlerNotFound,
     QueryTimedOut,
+    HandlingError(QueryHandlingErrorReason)
 }
 
 impl QueryRequestedErrorReason {
@@ -62,6 +63,22 @@ impl QueryRequestedErrorReason {
             Self::RequestIdDuplicated => "RequestIdDuplicated",
             Self::QueryHandlerNotFound => "QueryHandlerNotFound",
             Self::QueryTimedOut => "QueryTimedOut",
+            Self::HandlingError(reason) => match reason {
+                QueryHandlingErrorReason::ErrorHandling => "ErrorHandling",
+                QueryHandlingErrorReason::Unknown {details: _ } => "Unknown",
+            },
+        }
+    }
+
+    pub(crate) fn details(&self) -> Option<String> {
+        match self {
+            Self::RequestIdDuplicated => None,
+            Self::QueryHandlerNotFound => None,
+            Self::QueryTimedOut => None,
+            Self::HandlingError(reason) => match reason {
+                QueryHandlingErrorReason::ErrorHandling => None,
+                QueryHandlingErrorReason::Unknown { details } => details.clone(),
+            },
         }
     }
 }
