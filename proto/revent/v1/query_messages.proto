@@ -38,7 +38,6 @@ enum QueryHandlingErrorReason {
     Unknown = 0;
     // Indicates that there was an error processing the query request.
     ErrorHandling = 1;
-
 }
 
 /**
