@@ -15,7 +15,6 @@ use std::fmt::Display;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 use tonic::Status;
-use crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::{ErrorHandling, Unknown};
 
 #[derive(Debug)]
 pub(super) enum ClientMessageError {
@@ -125,10 +124,22 @@ impl ClientMessage {
                 let Some(client_id) = client_id_option else {
                     return Err(ClientMessageError::ClientNotRegistered);
                 };
-                // TODO(manuelarte): add reason
-                let reason = match msg.reason {
-                    Unknown => QueryHandlingErrorReason::Unknown{ details: msg.details},
-                    ErrorHandling => QueryHandlingErrorReason::ErrorHandling,
+                // Convert prost's raw i32 enum value to the generated enum type.
+                let proto_reason = crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::try_from(msg.reason)
+                    .unwrap_or(crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::Unknown);
+                let reason = match proto_reason {
+                    crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::Unknown => {
+                        QueryHandlingErrorReason::Unknown {
+                            details: if msg.details.is_empty() {
+                                None
+                            } else {
+                                Some(msg.details)
+                            },
+                        }
+                    }
+                    crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::ErrorHandling => {
+                        QueryHandlingErrorReason::ErrorHandling
+                    }
                 };
                 Ok(QueryHandlingError(QueryHandlingErrorMessage::new(
                     msg.request_id

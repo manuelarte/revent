@@ -393,7 +393,7 @@ impl<R: Repository + 'static> State<R> {
         };
 
         let requester = ongoing_query_request.requester();
-        let Some(requester_client_info) = self.get_client_by_id(requester).await else {
+        let Some(_requester_client_info) = self.get_client_by_id(requester).await else {
             warn!(
                 request_id = %msg.request_id(), requester=%requester,
                 "Query handling error received but requester not found"

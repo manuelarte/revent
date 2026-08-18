@@ -301,7 +301,7 @@ impl Display for QueryHandlingErrorReason {
             Self::ErrorHandling => write!(f, "Error handling the query request"),
             Self::Unknown { details } => {
                 if let Some(details) = details {
-                    write!(f, "Unknown error handling the query request: {}", details)
+                    write!(f, "Unknown error handling the query request: {details}")
                 } else {
                     write!(f, "Unknown error handling the query request")
                 }
