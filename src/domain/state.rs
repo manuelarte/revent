@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::domain::client::ClientInfo;
 use crate::domain::messages::client::{ClientMessage, QueryHandlingErrorMessage, QueryRequestMessage, QueryResponseMessage, RegisterClientMessage, RegisterSourceEventMessage};
 use crate::domain::messages::server::ServerMessage::Heartbeat;
-use crate::domain::messages::server::{QueryRespondedMessage, ServerMessage};
+use crate::domain::messages::server::{QueryRequestedErrorReason, QueryRespondedMessage, ServerMessage};
 use crate::domain::messages::{QueryId, RequestId};
 use crate::domain::query_handlers::{OngoingQueryRequest, QueryHandler, QueryRequestHandlerError};
 use crate::domain::source_events::NewSourceEvent;
@@ -393,7 +393,7 @@ impl<R: Repository + 'static> State<R> {
         };
 
         let requester = ongoing_query_request.requester();
-        let Some(_requester_client_info) = self.get_client_by_id(requester).await else {
+        let Some(requester_client_info) = self.get_client_by_id(requester).await else {
             warn!(
                 request_id = %msg.request_id(), requester=%requester,
                 "Query handling error received but requester not found"
@@ -401,19 +401,18 @@ impl<R: Repository + 'static> State<R> {
             return;
         };
 
-        // TODO(manuelarte): handle the error message, maybe send it to the requester, or log it, etc.
-        //if let Err(err) = requester_client_info
-            //.tx()
-            // TODO: this is wrong
-            //.send(ServerMessage::QueryResponded(QueryRespondedMessage::new(
-            //    msg.request_id().clone(),
-            //    msg.result(),
-            //)))
-            //.await
-        //{
-        //    error!(%err, request_id=%msg.request_id(), requester=%requester, "Can't send response for QueryResponseMessage to requester");
-        //    return;
-        //}
+        if let Err(err) = requester_client_info
+            .tx()
+            .send(ServerMessage::QueryRequestedError{
+                request_id: msg.request_id().clone(),
+                query_id: ongoing_query_request.query_id().clone(),
+                reason: QueryRequestedErrorReason::HandlingError(msg.reason().clone()),
+            })
+            .await
+        {
+            error!(%err, request_id=%msg.request_id(), requester=%requester, "Can't send response QueryRequestedError to requester");
+            return;
+        }
 
         self.query_handlers
             .remove_ongoing_request(msg.request_id())
