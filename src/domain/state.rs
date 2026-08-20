@@ -1,8 +1,13 @@
 use crate::config::Config;
 use crate::domain::client::ClientInfo;
-use crate::domain::messages::client::{ClientMessage, QueryHandlingErrorMessage, QueryRequestMessage, QueryResponseMessage, RegisterClientMessage, RegisterSourceEventMessage};
+use crate::domain::messages::client::{
+    ClientMessage, QueryHandlingErrorMessage, QueryRequestMessage, QueryResponseMessage,
+    RegisterClientMessage, RegisterSourceEventMessage,
+};
 use crate::domain::messages::server::ServerMessage::Heartbeat;
-use crate::domain::messages::server::{QueryRequestedErrorReason, QueryRespondedMessage, ServerMessage};
+use crate::domain::messages::server::{
+    QueryRequestedErrorReason, QueryRespondedMessage, ServerMessage,
+};
 use crate::domain::messages::{QueryId, RequestId};
 use crate::domain::query_handlers::{OngoingQueryRequest, QueryHandler, QueryRequestHandlerError};
 use crate::domain::source_events::NewSourceEvent;
@@ -403,7 +408,7 @@ impl<R: Repository + 'static> State<R> {
 
         if let Err(err) = requester_client_info
             .tx()
-            .send(ServerMessage::QueryRequestedError{
+            .send(ServerMessage::QueryRequestedError {
                 request_id: msg.request_id().clone(),
                 query_id: ongoing_query_request.query_id().clone(),
                 reason: QueryRequestedErrorReason::HandlingError(msg.reason().clone()),

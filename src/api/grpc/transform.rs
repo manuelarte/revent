@@ -4,8 +4,13 @@ use crate::api::grpc::control::protocontrol::{
     QueryRequest as QueryRequestProto, QueryRequested, QueryResponded, RegisterSourceEvent,
     ServerToClientMessage,
 };
-use crate::domain::messages::client::ClientMessage::{Heartbeat, QueryHandlingError, QueryRequest, QueryResponse, RegisterClient};
-use crate::domain::messages::client::{ClientMessage, QueryHandlingErrorMessage, QueryHandlingErrorReason, QueryRequestMessage, QueryResponseMessage, RegisterClientMessage, RegisterSourceEventMessage};
+use crate::domain::messages::client::ClientMessage::{
+    Heartbeat, QueryHandlingError, QueryRequest, QueryResponse, RegisterClient,
+};
+use crate::domain::messages::client::{
+    ClientMessage, QueryHandlingErrorMessage, QueryHandlingErrorReason, QueryRequestMessage,
+    QueryResponseMessage, RegisterClientMessage, RegisterSourceEventMessage,
+};
 use crate::domain::messages::server::{QueryRequestedMessage, QueryRespondedMessage};
 use crate::domain::messages::{InvalidQueryId, QueryId, RequestId};
 use crate::domain::source_events::{AggregateId, EventId, InvalidAggregateId};
@@ -125,8 +130,13 @@ impl ClientMessage {
                     return Err(ClientMessageError::ClientNotRegistered);
                 };
                 // Convert prost's raw i32 enum value to the generated enum type.
-                let proto_reason = crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::try_from(msg.reason)
-                    .unwrap_or(crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::Unknown);
+                let proto_reason =
+                    crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::try_from(
+                        msg.reason,
+                    )
+                    .unwrap_or(
+                        crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::Unknown,
+                    );
                 let reason = match proto_reason {
                     crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::Unknown => {
                         QueryHandlingErrorReason::Unknown {
@@ -148,7 +158,7 @@ impl ClientMessage {
                     client_id,
                     reason,
                 )))
-            },
+            }
             Payload::RegisterSourceEvent(msg) => {
                 let Some(client_id) = client_id_option else {
                     return Err(ClientMessageError::ClientNotRegistered);

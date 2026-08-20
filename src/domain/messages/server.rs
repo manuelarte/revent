@@ -54,7 +54,7 @@ pub enum QueryRequestedErrorReason {
     RequestIdDuplicated,
     QueryHandlerNotFound,
     QueryTimedOut,
-    HandlingError(QueryHandlingErrorReason)
+    HandlingError(QueryHandlingErrorReason),
 }
 
 impl QueryRequestedErrorReason {
@@ -65,7 +65,7 @@ impl QueryRequestedErrorReason {
             Self::QueryTimedOut => "QueryTimedOut",
             Self::HandlingError(reason) => match reason {
                 QueryHandlingErrorReason::ErrorHandling => "ErrorHandling",
-                QueryHandlingErrorReason::Unknown {details: _ } => "Unknown",
+                QueryHandlingErrorReason::Unknown { details: _ } => "Unknown",
             },
         }
     }
