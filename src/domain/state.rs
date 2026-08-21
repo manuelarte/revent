@@ -1,12 +1,12 @@
 use crate::config::Config;
 use crate::domain::client::ClientInfo;
 use crate::domain::messages::client::{
-    ClientMessage, QueryHandlingErrorMessage, QueryRequestMessage, QueryResponseMessage,
+    ClientMessage, QueryHandlingFailedMessage, QueryRequestMessage, QueryResponseMessage,
     RegisterClientMessage, RegisterSourceEventMessage,
 };
 use crate::domain::messages::server::ServerMessage::Heartbeat;
 use crate::domain::messages::server::{
-    QueryRequestedErrorReason, QueryRespondedMessage, ServerMessage,
+    QueryRequestedFailedReason, QueryRespondedMessage, ServerMessage,
 };
 use crate::domain::messages::{QueryId, RequestId};
 use crate::domain::query_handlers::{OngoingQueryRequest, QueryHandler, QueryRequestHandlerError};
@@ -176,7 +176,7 @@ impl<R: Repository + 'static> State<R> {
             ClientMessage::RegisterClient(msg) => self.handle_register_client_message(msg).await,
             ClientMessage::QueryRequest(msg) => self.handle_query_request_message(msg).await,
             ClientMessage::QueryResponse(msg) => self.handle_query_response_message(msg).await,
-            ClientMessage::QueryHandlingError(msg) => {
+            ClientMessage::QueryHandlingFailed(msg) => {
                 self.handle_query_handling_error_message(msg).await;
             }
             ClientMessage::RegisterSourceEvent(msg) => {
@@ -384,7 +384,7 @@ impl<R: Repository + 'static> State<R> {
         );
     }
 
-    async fn handle_query_handling_error_message(&self, msg: &QueryHandlingErrorMessage) {
+    async fn handle_query_handling_error_message(&self, msg: &QueryHandlingFailedMessage) {
         let Some(ongoing_query_request) = self
             .query_handlers
             .get_ongoing_request(msg.request_id())
@@ -408,14 +408,14 @@ impl<R: Repository + 'static> State<R> {
 
         if let Err(err) = requester_client_info
             .tx()
-            .send(ServerMessage::QueryRequestedError {
+            .send(ServerMessage::QueryRequestedFailed {
                 request_id: msg.request_id().clone(),
                 query_id: ongoing_query_request.query_id().clone(),
-                reason: QueryRequestedErrorReason::HandlingError(msg.reason().clone()),
+                reason: QueryRequestedFailedReason::HandlingError(msg.reason().clone()),
             })
             .await
         {
-            error!(%err, request_id=%msg.request_id(), requester=%requester, "Can't send response QueryRequestedError to requester");
+            error!(%err, request_id=%msg.request_id(), requester=%requester, "Can't send response QueryRequestedFailed to requester");
             return;
         }
 
@@ -488,7 +488,7 @@ impl<R: Repository + 'static> State<R> {
 mod tests {
     use super::*;
 
-    use crate::domain::messages::server::QueryRequestedErrorReason;
+    use crate::domain::messages::server::QueryRequestedFailedReason;
     use crate::domain::query_handlers::{QueryHandler, QueryRequestHandlerError};
     use crate::domain::source_events::{
         NewSourceEvent, SourceEvent, SourceEventRepository, SourceEventRepositoryError,
@@ -824,13 +824,13 @@ mod tests {
             .expect("inspectable tx mutex should not be poisoned");
         assert_eq!(sent_messages.len(), 2);
 
-        let ServerMessage::QueryRequestedError {
+        let ServerMessage::QueryRequestedFailed {
             request_id: msg_request_id,
             query_id: msg_query_id,
-            reason: QueryRequestedErrorReason::QueryHandlerNotFound,
+            reason: QueryRequestedFailedReason::QueryHandlerNotFound,
         } = &sent_messages[1]
         else {
-            panic!("expected QueryRequestedError message to be sent to requester")
+            panic!("expected QueryRequestedFailed message to be sent to requester")
         };
         assert_eq!(msg_request_id.clone(), request_id);
         assert_eq!(msg_query_id.clone(), query_id);

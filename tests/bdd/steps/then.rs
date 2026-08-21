@@ -36,8 +36,8 @@ async fn then_client_receives_message(
         "QueryRequested",
         "QueryResponded",
         "Heartbeat",
-        "ClientRegistrationError",
-        "QueryRequestedError",
+        "ClientRegistrationFailed",
+        "QueryRequestedFailed",
     ];
     assert!(
         supported_msg_names.contains(&msg_name.as_str()),
@@ -68,7 +68,7 @@ async fn then_client_receives_message(
                 assert_eq!(msg.client_id, expected_registered_client_id.as_str());
                 return;
             }
-            ("ClientRegistrationError", Payload::ClientRegistrationError(msg)) => {
+            ("ClientRegistrationFailed", Payload::ClientRegistrationFailed(msg)) => {
                 // If a table is provided, check the reason. Accept both formats:
                 // 1) A header row followed by a value row (rows[1][1])
                 // 2) A single key/value row (rows[0][0]="reason", rows[0][1]=value)
@@ -92,7 +92,7 @@ async fn then_client_receives_message(
                     let expected_reason = expected_reason.expect("expected reason value in table");
                     assert_eq!(
                         &msg.reason, expected_reason,
-                        "received ClientRegistrationError with unexpected reason"
+                        "received ClientRegistrationFailed with unexpected reason"
                     );
                 }
                 return;
@@ -100,7 +100,7 @@ async fn then_client_receives_message(
             ("QueryRequested", Payload::QueryRequested(_))
             | ("QueryResponded", Payload::QueryResponded(_))
             | ("Heartbeat", Payload::Heartbeat(_)) => return,
-            ("QueryRequestedError", Payload::QueryRequestedError(msg)) => {
+            ("QueryRequestedFailed", Payload::QueryRequestedFailed(msg)) => {
                 // If a table is provided, check the reason. Accept both header+value and single key/value row.
                 if let Some(table) = &step.table {
                     let expected_reason = if table.rows.len() >= 2 {
@@ -126,7 +126,7 @@ async fn then_client_receives_message(
                     let expected_reason = expected_reason.expect("expected reason value in table");
                     assert_eq!(
                         &msg.reason, expected_reason,
-                        "received QueryRequestedError with unexpected reason"
+                        "received QueryRequestedFailed with unexpected reason"
                     );
                 }
                 return;
@@ -228,10 +228,10 @@ async fn then_client_does_not_receive_message(
             .expect("server sent an OpenResponse without a response payload");
 
         // Check that we didn't receive the expected message type
-        if let ("QueryRequestedError", Payload::QueryRequestedError(_)) =
+        if let ("QueryRequestedFailed", Payload::QueryRequestedFailed(_)) =
             (msg_name.as_str(), response)
         {
-            panic!("client should not receive QueryRequestedError message, but did");
+            panic!("client should not receive QueryRequestedFailed message, but did");
         } else {
             // Other messages are OK, we just don't want the specific one
         }

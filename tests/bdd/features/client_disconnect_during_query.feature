@@ -18,7 +18,7 @@ Feature: Client disconnection during query request
       And a client registers with client id "clientRequest"
       And the client "clientRequest" sends an "users.GetAll" query
       And the client "clientRequest" disconnects immediately
-    Then the client "clientRequest" does not receive a "QueryRequestedError" message
+    Then the client "clientRequest" does not receive a "QueryRequestedFailed" message
       And the server handles it gracefully without errors
 
   Scenario: Responder client disconnects before sending response

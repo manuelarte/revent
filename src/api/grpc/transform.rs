@@ -5,10 +5,10 @@ use crate::api::grpc::control::protocontrol::{
     ServerToClientMessage,
 };
 use crate::domain::messages::client::ClientMessage::{
-    Heartbeat, QueryHandlingError, QueryRequest, QueryResponse, RegisterClient,
+    Heartbeat, QueryHandlingFailed, QueryRequest, QueryResponse, RegisterClient,
 };
 use crate::domain::messages::client::{
-    ClientMessage, QueryHandlingErrorMessage, QueryHandlingErrorReason, QueryRequestMessage,
+    ClientMessage, QueryHandlingFailedMessage, QueryHandlingFailedReason, QueryRequestMessage,
     QueryResponseMessage, RegisterClientMessage, RegisterSourceEventMessage,
 };
 use crate::domain::messages::server::{QueryRequestedMessage, QueryRespondedMessage};
@@ -125,21 +125,21 @@ impl ClientMessage {
                     qr.result.as_slice(),
                 )))
             }
-            Payload::QueryHandlingError(msg) => {
+            Payload::QueryHandlingFailed(msg) => {
                 let Some(client_id) = client_id_option else {
                     return Err(ClientMessageError::ClientNotRegistered);
                 };
                 // Convert prost's raw i32 enum value to the generated enum type.
                 let proto_reason =
-                    crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::try_from(
+                    crate::api::grpc::control::protocontrol::QueryHandlingFailedReason::try_from(
                         msg.reason,
                     )
                     .unwrap_or(
-                        crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::Unknown,
+                        crate::api::grpc::control::protocontrol::QueryHandlingFailedReason::Unknown,
                     );
                 let reason = match proto_reason {
-                    crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::Unknown => {
-                        QueryHandlingErrorReason::Unknown {
+                    crate::api::grpc::control::protocontrol::QueryHandlingFailedReason::Unknown => {
+                        QueryHandlingFailedReason::Unknown {
                             details: if msg.details.is_empty() {
                                 None
                             } else {
@@ -147,11 +147,11 @@ impl ClientMessage {
                             },
                         }
                     }
-                    crate::api::grpc::control::protocontrol::QueryHandlingErrorReason::ErrorHandling => {
-                        QueryHandlingErrorReason::ErrorHandling
+                    crate::api::grpc::control::protocontrol::QueryHandlingFailedReason::ErrorHandling => {
+                        QueryHandlingFailedReason::ErrorHandling
                     }
                 };
-                Ok(QueryHandlingError(QueryHandlingErrorMessage::new(
+                Ok(QueryHandlingFailed(QueryHandlingFailedMessage::new(
                     msg.request_id
                         .parse::<RequestId>()
                         .expect("request id should be an uuid"),

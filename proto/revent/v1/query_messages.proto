@@ -33,7 +33,7 @@ message QueryResponse {
     bytes result = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
-enum QueryHandlingErrorReason {
+enum QueryHandlingFailedReason {
     // Indicates that the reason for the error is unknown.
     Unknown = 0;
     // Indicates that there was an error processing the query request.
@@ -41,13 +41,13 @@ enum QueryHandlingErrorReason {
 }
 
 /**
- * QueryHandlingError is sent when there is an error processing a QueryRequest message.
+ * QueryHandlingFailed is sent when the processing of a QueryRequest message failed.
  */
-message QueryHandlingError {
+message QueryHandlingFailed {
     // Unique identifier for this request.
     string request_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_info).format = UUID4];
     // Reason why the query could not be handled.
-    QueryHandlingErrorReason reason = 2 [(google.api.field_behavior) = REQUIRED];
+    QueryHandlingFailedReason reason = 2 [(google.api.field_behavior) = REQUIRED];
     // Additional details about the error, if applicable.
     string details = 3 [(google.api.field_behavior) = OPTIONAL];
 }
@@ -75,9 +75,9 @@ message QueryResponded {
 }
 
 /**
- * QueryRequestedError is sent when there is an error processing a QueryRequest message.
+ * QueryRequestedFailed is sent when there is an error processing a QueryRequest message.
  */
-message QueryRequestedError {
+message QueryRequestedFailed {
     // Unique identifier for this request.
     string request_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_info).format = UUID4];
     // Identifier of the query.

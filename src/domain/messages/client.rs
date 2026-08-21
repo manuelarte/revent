@@ -17,9 +17,9 @@ pub enum ClientMessage {
     QueryRequest(QueryRequestMessage),
     /// `QueryResponse` is sent when a client replies to a query request.
     QueryResponse(QueryResponseMessage),
-    /// `QueryHandlingError` is sent when a client (responder) wants to indicate that there was an error
+    /// `QueryHandlingFailed` is sent when a client (responder) wants to indicate that there was an error
     /// processing the query request.
-    QueryHandlingError(QueryHandlingErrorMessage),
+    QueryHandlingFailed(QueryHandlingFailedMessage),
     /// `PublishSourceEvent` is sent when an event happened.
     RegisterSourceEvent(RegisterSourceEventMessage),
     /// `Heartbeat` sent to check that the client is connected.
@@ -36,7 +36,7 @@ impl ClientMessage {
             Self::QueryResponse(msg) => Some(msg.responder()),
             Self::RegisterSourceEvent(msg) => Some(msg.source()),
             Self::Heartbeat { client_id } | Self::DisconnectClient { client_id } => Some(client_id),
-            Self::QueryHandlingError(msg) => Some(msg.responder()),
+            Self::QueryHandlingFailed(msg) => Some(msg.responder()),
         }
     }
 }
@@ -183,18 +183,18 @@ impl QueryResponseMessage {
 }
 
 #[derive(Debug, Clone)]
-pub struct QueryHandlingErrorMessage {
+pub struct QueryHandlingFailedMessage {
     request_id: RequestId,
     responder: ClientId,
-    reason: QueryHandlingErrorReason,
+    reason: QueryHandlingFailedReason,
 }
 
-impl QueryHandlingErrorMessage {
+impl QueryHandlingFailedMessage {
     #[must_use]
     pub(crate) fn new(
         request_id: impl Into<RequestId>,
         responder: impl Into<ClientId>,
-        reason: QueryHandlingErrorReason,
+        reason: QueryHandlingFailedReason,
     ) -> Self {
         Self {
             request_id: request_id.into(),
@@ -214,7 +214,7 @@ impl QueryHandlingErrorMessage {
     }
 
     #[must_use]
-    pub(crate) const fn reason(&self) -> &QueryHandlingErrorReason {
+    pub(crate) const fn reason(&self) -> &QueryHandlingFailedReason {
         &self.reason
     }
 }
@@ -288,14 +288,14 @@ impl From<&RegisterSourceEventMessage> for NewSourceEvent {
 }
 
 #[derive(Debug, Clone)]
-pub enum QueryHandlingErrorReason {
+pub enum QueryHandlingFailedReason {
     // ErrorHandling is an error that occurred while the client was handling the query request.
     ErrorHandling,
     // Unknown is an error that occurred while the client was handling the query request, but the reason is unknown.
     Unknown { details: Option<String> },
 }
 
-impl Display for QueryHandlingErrorReason {
+impl Display for QueryHandlingFailedReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ErrorHandling => write!(f, "Error handling the query request"),
