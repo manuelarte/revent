@@ -54,11 +54,11 @@ impl<R: Repository + 'static> State<R> {
         let connected_clients = self.connected_clients.read().await;
         let total_count = connected_clients.len();
 
-        if page_request.offset() == 0 || total_count == 0 {
+        if page_request.limit() == 0 || total_count == 0 {
             return PageResponse::new(Vec::new(), total_count);
         }
 
-        let start = page_request.page();
+        let start = page_request.offset();
         if start >= total_count {
             return PageResponse::new(Vec::new(), total_count);
         }
@@ -70,7 +70,7 @@ impl<R: Repository + 'static> State<R> {
             .collect();
         sorted_clients.sort_by(|(a, _), (b, _)| a.cmp(b));
 
-        let end = (start + page_request.offset()).min(total_count);
+        let end = (start + page_request.limit()).min(total_count);
         let items = sorted_clients[start..end]
             .iter()
             .map(|(client_id, client_info)| {
@@ -89,7 +89,7 @@ impl<R: Repository + 'static> State<R> {
             .cloned()
     }
 
-    /// `get_query_handlers_for_client_id` get the queries that can be responded by the `client_id`.
+    /// `get_query_handlers_for_client_id` get the queries that can be responded by the `client_id` .
     pub async fn get_query_handlers_for_client_id(&self, client_id: &ClientId) -> Vec<QueryId> {
         self.query_handlers
             .get_query_handlers_for_client_id(client_id)
