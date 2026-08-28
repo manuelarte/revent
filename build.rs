@@ -29,13 +29,29 @@ fn main() -> Result<(), BuildError> {
         .compile_protos(&[APP_PROTOS[0]], PROTO_INCLUDES)
         .map_err(BuildError::IOError)?;
     rustc_tools_util::setup_version_info!();
-    // Get the current branch name
-    let output = Command::new("git")
-        .args(["rev-parse", "--abbrev-ref", "HEAD"])
-        .output()
-        .map_err(BuildError::IOError)?;
-    let git_branch =
-        String::from_utf8(output.stdout).map_err(BuildError::CantConvertStringToUtf8)?;
+
+    // Get the current branch name with graceful fallback if git is unavailable
+    let git_branch = std::env::var("GIT_BRANCH")
+        .ok()
+        .filter(|s| !s.trim().is_empty())
+        .or_else(|| {
+            Command::new("git")
+                .args(["rev-parse", "--abbrev-ref", "HEAD"])
+                .output()
+                .ok()
+                .and_then(|output| {
+                    if output.status.success() {
+                        String::from_utf8(output.stdout)
+                            .ok()
+                            .map(|s| s.trim().to_string())
+                            .filter(|s| !s.is_empty())
+                    } else {
+                        None
+                    }
+                })
+        })
+        .unwrap_or_else(|| "unknown".to_string());
+
     println!("cargo:rustc-env=GIT_BRANCH={git_branch}");
     Ok(())
 }

@@ -19,7 +19,7 @@ deactivate Client2
 
 Client1 -> Server: QueryRequest(id1, users.GetById)
 activate Client1
-Server -> Client1: QueryRequestedError(QueryHandlerNotFound)
+Server -> Client1: QueryRequestedFailed(QueryHandlerNotFound)
 deactivate Client1
 
 == Query Handling: Query timed out ==
@@ -30,7 +30,7 @@ Server -> Client2: QueryRequested(id1, users.GetAll)
 activate Client2
 Client2 -x Server: QueryResponse(id1, users.GetAll)
 deactivate Client2
-Server -> Client1: QueryRequestedError(QueryTimedOut)
+Server -> Client1: QueryRequestedFailed(QueryTimedOut)
 deactivate Client1
 
 @enduml
