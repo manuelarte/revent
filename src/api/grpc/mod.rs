@@ -1,5 +1,5 @@
 use crate::api::grpc::control::protocontrol::{
-    ClientRegistered, ClientRegistrationError, Heartbeat, QueryRequestedError,
+    ClientRegistered, ClientRegistrationFailed, Heartbeat, QueryRequestedFailed,
     ServerToClientMessage, SourceEvent, SourceEventRegistered,
 };
 use crate::domain::messages::server::ServerMessage;
@@ -37,9 +37,9 @@ impl Tx for GrpcTx {
                     },
                 )
             }
-            ServerMessage::ClientRegistrationError { client_id, reason } => {
-                control::protocontrol::server_to_client_message::Payload::ClientRegistrationError(
-                    ClientRegistrationError {
+            ServerMessage::ClientRegistrationFailed { client_id, reason } => {
+                control::protocontrol::server_to_client_message::Payload::ClientRegistrationFailed(
+                    ClientRegistrationFailed {
                         client_id: client_id.as_str().to_string(),
                         reason: reason.as_str().to_string(),
                     },
@@ -51,15 +51,16 @@ impl Tx for GrpcTx {
             ServerMessage::QueryResponded(msg) => {
                 control::protocontrol::server_to_client_message::Payload::QueryResponded(msg.into())
             }
-            ServerMessage::QueryRequestedError {
+            ServerMessage::QueryRequestedFailed {
                 request_id,
                 query_id,
                 reason,
-            } => control::protocontrol::server_to_client_message::Payload::QueryRequestedError(
-                QueryRequestedError {
+            } => control::protocontrol::server_to_client_message::Payload::QueryRequestedFailed(
+                QueryRequestedFailed {
                     request_id: request_id.to_string(),
                     query_id: query_id.to_string(),
                     reason: reason.as_str().to_string(),
+                    details: reason.details().unwrap_or_default(),
                 },
             ),
             ServerMessage::SourceEventRegistered {

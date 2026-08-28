@@ -15,4 +15,4 @@ Feature: gRPC client registration
     When connection "firstConnection" registers with client id "duplicatedClient"
       And connection "secondConnection" registers with client id "duplicatedClient"
     Then the client "firstConnection" receives a "ClientRegistered" message
-      And the client "secondConnection" receives a "ClientRegistrationError" message
+      And the client "secondConnection" receives a "ClientRegistrationFailed" message
