@@ -1,11 +1,13 @@
 use crate::config::Config;
 use crate::domain::client::ClientInfo;
 use crate::domain::messages::client::{
-    ClientMessage, QueryRequestMessage, QueryResponseMessage, RegisterClientMessage,
-    RegisterSourceEventMessage,
+    ClientMessage, QueryHandlingFailedMessage, QueryRequestMessage, QueryResponseMessage,
+    RegisterClientMessage, RegisterSourceEventMessage,
 };
 use crate::domain::messages::server::ServerMessage::Heartbeat;
-use crate::domain::messages::server::{QueryRespondedMessage, ServerMessage};
+use crate::domain::messages::server::{
+    QueryRequestedFailedReason, QueryRespondedMessage, ServerMessage,
+};
 use crate::domain::messages::{QueryId, RequestId};
 use crate::domain::query_handlers::{OngoingQueryRequest, QueryHandler, QueryRequestHandlerError};
 use crate::domain::source_events::NewSourceEvent;
@@ -52,11 +54,11 @@ impl<R: Repository + 'static> State<R> {
         let connected_clients = self.connected_clients.read().await;
         let total_count = connected_clients.len();
 
-        if page_request.offset() == 0 || total_count == 0 {
+        if page_request.limit() == 0 || total_count == 0 {
             return PageResponse::new(Vec::new(), total_count);
         }
 
-        let start = page_request.page();
+        let start = page_request.offset();
         if start >= total_count {
             return PageResponse::new(Vec::new(), total_count);
         }
@@ -68,7 +70,7 @@ impl<R: Repository + 'static> State<R> {
             .collect();
         sorted_clients.sort_by(|(a, _), (b, _)| a.cmp(b));
 
-        let end = (start + page_request.offset()).min(total_count);
+        let end = (start + page_request.limit()).min(total_count);
         let items = sorted_clients[start..end]
             .iter()
             .map(|(client_id, client_info)| {
@@ -87,7 +89,7 @@ impl<R: Repository + 'static> State<R> {
             .cloned()
     }
 
-    /// `get_query_handlers_for_client_id` get the queries that can be responded by the `client_id`.
+    /// `get_query_handlers_for_client_id` get the queries that can be responded by the `client_id` .
     pub async fn get_query_handlers_for_client_id(&self, client_id: &ClientId) -> Vec<QueryId> {
         self.query_handlers
             .get_query_handlers_for_client_id(client_id)
@@ -174,6 +176,9 @@ impl<R: Repository + 'static> State<R> {
             ClientMessage::RegisterClient(msg) => self.handle_register_client_message(msg).await,
             ClientMessage::QueryRequest(msg) => self.handle_query_request_message(msg).await,
             ClientMessage::QueryResponse(msg) => self.handle_query_response_message(msg).await,
+            ClientMessage::QueryHandlingFailed(msg) => {
+                self.handle_query_handling_error_message(msg).await;
+            }
             ClientMessage::RegisterSourceEvent(msg) => {
                 self.handle_register_source_event_message(msg).await;
             }
@@ -379,6 +384,51 @@ impl<R: Repository + 'static> State<R> {
         );
     }
 
+    async fn handle_query_handling_error_message(&self, msg: &QueryHandlingFailedMessage) {
+        let Some(ongoing_query_request) = self
+            .query_handlers
+            .get_ongoing_request(msg.request_id())
+            .await
+        else {
+            warn!(
+                request_id = %msg.request_id(),
+                "Query response received but request id not found"
+            );
+            return;
+        };
+
+        let requester = ongoing_query_request.requester();
+        let Some(requester_client_info) = self.get_client_by_id(requester).await else {
+            warn!(
+                request_id = %msg.request_id(), requester=%requester,
+                "Query handling error received but requester not found"
+            );
+            return;
+        };
+
+        if let Err(err) = requester_client_info
+            .tx()
+            .send(ServerMessage::QueryRequestedFailed {
+                request_id: msg.request_id().clone(),
+                query_id: ongoing_query_request.query_id().clone(),
+                reason: QueryRequestedFailedReason::HandlingError(msg.reason().clone()),
+            })
+            .await
+        {
+            error!(%err, request_id=%msg.request_id(), requester=%requester, "Can't send response QueryRequestedFailed to requester");
+            return;
+        }
+
+        self.query_handlers
+            .remove_ongoing_request(msg.request_id())
+            .await;
+        info!(responder_client_id = msg.responder().to_string(),
+            request_id = %msg.request_id(),
+            error = %msg.reason(),
+            "Query handling failed with error"
+        );
+    }
+
     async fn handle_register_source_event_message(&self, msg: &RegisterSourceEventMessage) {
         // TODO(manuelarte): check if event exists, and if exists, check whether is the same
         // or not, if it's not, then send back an error.
@@ -438,7 +488,7 @@ impl<R: Repository + 'static> State<R> {
 mod tests {
     use super::*;
 
-    use crate::domain::messages::server::QueryRequestedErrorReason;
+    use crate::domain::messages::server::QueryRequestedFailedReason;
     use crate::domain::query_handlers::{QueryHandler, QueryRequestHandlerError};
     use crate::domain::source_events::{
         NewSourceEvent, SourceEvent, SourceEventRepository, SourceEventRepositoryError,
@@ -774,13 +824,13 @@ mod tests {
             .expect("inspectable tx mutex should not be poisoned");
         assert_eq!(sent_messages.len(), 2);
 
-        let ServerMessage::QueryRequestedError {
+        let ServerMessage::QueryRequestedFailed {
             request_id: msg_request_id,
             query_id: msg_query_id,
-            reason: QueryRequestedErrorReason::QueryHandlerNotFound,
+            reason: QueryRequestedFailedReason::QueryHandlerNotFound,
         } = &sent_messages[1]
         else {
-            panic!("expected QueryRequestedError message to be sent to requester")
+            panic!("expected QueryRequestedFailed message to be sent to requester")
         };
         assert_eq!(msg_request_id.clone(), request_id);
         assert_eq!(msg_query_id.clone(), query_id);
