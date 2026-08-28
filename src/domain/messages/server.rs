@@ -1,5 +1,5 @@
 use crate::domain::ClientId;
-use crate::domain::messages::client::QueryRequestMessage;
+use crate::domain::messages::client::{QueryHandlingFailedReason, QueryRequestMessage};
 use crate::domain::messages::{QueryId, RequestId};
 use crate::domain::source_events::{EventId, SourceEvent};
 use std::collections::HashMap;
@@ -9,21 +9,21 @@ use std::collections::HashMap;
 pub enum ServerMessage {
     /// `ClientRegistered` is sent when a client is registered.
     ClientRegistered { client_id: ClientId },
-    /// `ClientRegistrationError` is sent to the client to indicate that the client registration failed.
-    ClientRegistrationError {
+    /// `ClientRegistrationFailed` is sent to the client to indicate that the client registration failed.
+    ClientRegistrationFailed {
         client_id: ClientId,
-        reason: ClientRegistrationErrorReason,
+        reason: ClientRegistrationFailedReason,
     },
     /// `Heartbeat` is sent to check if the client is connected.
     Heartbeat,
     /// `QueryRequested` is sent when a client did a query request.
     QueryRequested(QueryRequestedMessage),
-    /// `QueryRequestedError` is sent to the client (requester) to indicate that there was an error
+    /// `QueryRequestedFailed` is sent to the client (requester) to indicate that there was an error
     /// processing the query request.
-    QueryRequestedError {
+    QueryRequestedFailed {
         request_id: RequestId,
         query_id: QueryId,
-        reason: QueryRequestedErrorReason,
+        reason: QueryRequestedFailedReason,
     },
     /// `QueryResponded` is sent when a client responded to a query request.
     QueryResponded(QueryRespondedMessage),
@@ -37,11 +37,11 @@ pub enum ServerMessage {
 }
 
 #[derive(Debug, Clone)]
-pub enum ClientRegistrationErrorReason {
+pub enum ClientRegistrationFailedReason {
     ClientIdDuplicated,
 }
 
-impl ClientRegistrationErrorReason {
+impl ClientRegistrationFailedReason {
     pub(crate) const fn as_str(&self) -> &str {
         match self {
             Self::ClientIdDuplicated => "ClientIdDuplicated",
@@ -50,43 +50,60 @@ impl ClientRegistrationErrorReason {
 }
 
 #[derive(Debug, Clone)]
-pub enum QueryRequestedErrorReason {
+pub enum QueryRequestedFailedReason {
     RequestIdDuplicated,
     QueryHandlerNotFound,
     QueryTimedOut,
+    HandlingError(QueryHandlingFailedReason),
 }
 
-impl QueryRequestedErrorReason {
+impl QueryRequestedFailedReason {
     pub(crate) const fn as_str(&self) -> &str {
         match self {
             Self::RequestIdDuplicated => "RequestIdDuplicated",
             Self::QueryHandlerNotFound => "QueryHandlerNotFound",
             Self::QueryTimedOut => "QueryTimedOut",
+            Self::HandlingError(reason) => match reason {
+                QueryHandlingFailedReason::ErrorHandling => "ErrorHandling",
+                QueryHandlingFailedReason::Unknown { details: _ } => "Unknown",
+            },
+        }
+    }
+
+    pub(crate) fn details(&self) -> Option<String> {
+        match self {
+            Self::RequestIdDuplicated => None,
+            Self::QueryHandlerNotFound => None,
+            Self::QueryTimedOut => None,
+            Self::HandlingError(reason) => match reason {
+                QueryHandlingFailedReason::ErrorHandling => None,
+                QueryHandlingFailedReason::Unknown { details } => details.clone(),
+            },
         }
     }
 }
 
 impl ServerMessage {
     pub(in crate::domain) const fn client_id_duplicated(client_id: ClientId) -> Self {
-        Self::ClientRegistrationError {
+        Self::ClientRegistrationFailed {
             client_id,
-            reason: ClientRegistrationErrorReason::ClientIdDuplicated,
+            reason: ClientRegistrationFailedReason::ClientIdDuplicated,
         }
     }
 
     pub(in crate::domain) fn query_request_id_duplicated(msg: &QueryRequestMessage) -> Self {
-        Self::QueryRequestedError {
+        Self::QueryRequestedFailed {
             request_id: msg.request_id().clone(),
             query_id: msg.query_id().clone(),
-            reason: QueryRequestedErrorReason::RequestIdDuplicated,
+            reason: QueryRequestedFailedReason::RequestIdDuplicated,
         }
     }
 
     pub(in crate::domain) fn query_handler_not_found(msg: &QueryRequestMessage) -> Self {
-        Self::QueryRequestedError {
+        Self::QueryRequestedFailed {
             request_id: msg.request_id().clone(),
             query_id: msg.query_id().clone(),
-            reason: QueryRequestedErrorReason::QueryHandlerNotFound,
+            reason: QueryRequestedFailedReason::QueryHandlerNotFound,
         }
     }
 
@@ -94,10 +111,10 @@ impl ServerMessage {
         request_id: RequestId,
         query_id: QueryId,
     ) -> Self {
-        Self::QueryRequestedError {
+        Self::QueryRequestedFailed {
             request_id,
             query_id,
-            reason: QueryRequestedErrorReason::QueryTimedOut,
+            reason: QueryRequestedFailedReason::QueryTimedOut,
         }
     }
 }

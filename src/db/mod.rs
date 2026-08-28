@@ -12,9 +12,6 @@ pub struct RustLiteSourceEventRepository {
     pool: SqlitePool,
 }
 
-unsafe impl Send for RustLiteSourceEventRepository {}
-unsafe impl Sync for RustLiteSourceEventRepository {}
-
 impl RustLiteSourceEventRepository {
     /// Creates a new instance of the repository.
     ///
@@ -22,10 +19,13 @@ impl RustLiteSourceEventRepository {
     ///
     /// Return an error if it can't create the database.
     pub async fn new() -> Result<Self, String> {
-        let database_url = "sqlite::memory:";
+        let database_url = format!(
+            "sqlite:file:mem_{}?mode=memory&cache=shared",
+            Uuid::new_v4().simple()
+        );
         let pool = SqlitePoolOptions::new()
             .max_connections(5)
-            .connect(database_url)
+            .connect(&database_url)
             .await
             .map_err(|e| format!("Failed to create database pool: {e}"))?;
         Ok(Self { pool })

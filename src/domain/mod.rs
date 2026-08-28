@@ -107,24 +107,24 @@ impl ClientSelectionStrategy for RoundRobinStrategy {
 }
 
 pub struct PageRequest {
-    page: usize,
     offset: usize,
+    limit: usize,
 }
 
 impl PageRequest {
     #[must_use]
-    pub const fn new(page: usize, offset: usize) -> Self {
-        Self { page, offset }
-    }
-
-    #[must_use]
-    pub const fn page(&self) -> usize {
-        self.page
+    pub const fn new(offset: usize, limit: usize) -> Self {
+        Self { offset, limit }
     }
 
     #[must_use]
     pub const fn offset(&self) -> usize {
         self.offset
+    }
+
+    #[must_use]
+    pub const fn limit(&self) -> usize {
+        self.limit
     }
 }
 

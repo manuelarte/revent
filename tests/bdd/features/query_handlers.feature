@@ -21,7 +21,7 @@ Feature: gRPC client registration
     When a client registers with client id "clientQueryRequest"
       And the client "clientQueryRequest" sends an "users.GetAll" query
     Then the client "clientQueryRequest" receives a "ClientRegistered" message
-      And the client "clientQueryRequest" receives a "QueryRequestedError" message
+      And the client "clientQueryRequest" receives a "QueryRequestedFailed" message
       | reason | QueryHandlerNotFound |
 
   Scenario: Client gets a request timed out for a QueryRequest
@@ -35,7 +35,7 @@ Feature: gRPC client registration
     Then the client "clientQueryRequest" receives a "ClientRegistered" message
       And the client "clientQueryResponse" receives a "ClientRegistered" message
       And the client "clientQueryResponse" receives a "QueryRequested" message
-      And the client "clientQueryRequest" receives a "QueryRequestedError" message
+      And the client "clientQueryRequest" receives a "QueryRequestedFailed" message
       | reason | QueryTimedOut |
 
   Scenario: Client sends a duplicated query request id
@@ -62,6 +62,5 @@ Feature: gRPC client registration
       And the client "clientQueryRequestB" receives a "ClientRegistered" message
       And the client "clientQueryResponse" receives a "ClientRegistered" message
       And the client "clientQueryResponse" receives a "QueryRequested" message
-      And the client "clientQueryRequestB" receives a "QueryRequestedError" message
+      And the client "clientQueryRequestB" receives a "QueryRequestedFailed" message
       | reason | RequestIdDuplicated |
-
