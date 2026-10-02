@@ -19,7 +19,7 @@ futures-core = "0.3"
 hostname = "0.4.2"
 humantime-serde = "1.1.1"
 mime_guess = "2.0"
-opentelemetry = { version = "0.32.0" }
+opentelemetry = { version = "0.33.0" }
 opentelemetry-appender-tracing = "0.32.0"
 opentelemetry-otlp = { version = "0.32.0", features = ["grpc-tonic", "logs", "trace"] }
 opentelemetry-stdout = { version = "0.32.0", features = ["logs", "trace"] }
