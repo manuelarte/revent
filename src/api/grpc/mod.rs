@@ -97,8 +97,8 @@ impl From<DomainSourceEvent> for SourceEvent {
         Self {
             id: event.id().to_string(),
             created_at: Some(prost_types::Timestamp {
-                seconds: event.created_at().timestamp(),
-                nanos: event.created_at().timestamp_subsec_nanos().cast_signed(),
+                seconds: event.created_at().as_second(),
+                nanos: event.created_at().subsec_nanosecond(),
             }),
             monotonic_clock: event.monotonic_clock(),
             aggregate_type: event.aggregate_type().to_string(),
@@ -139,7 +139,7 @@ fn json_to_prost_value(json: JsonValue) -> Value {
 mod tests {
     use super::*;
     use crate::domain::source_events::{AggregateId, EventId};
-    use chrono::Utc;
+    use jiff::Timestamp;
     use serde_json::json;
     use uuid::Uuid;
 
@@ -217,7 +217,7 @@ mod tests {
 
         let domain_event = DomainSourceEvent::new(
             event_id.clone(),
-            Utc::now(),
+            Timestamp::now(),
             100,
             aggregate_id,
             "test-type".to_string(),
@@ -246,7 +246,7 @@ mod tests {
 
         let domain_event = DomainSourceEvent::new(
             event_id,
-            Utc::now(),
+            Timestamp::now(),
             100,
             aggregate_id,
             "test-type".to_string(),

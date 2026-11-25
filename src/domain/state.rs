@@ -497,7 +497,7 @@ mod tests {
     use crate::domain::{ClientSelectionStrategy, RoundRobinStrategy};
     use std::sync::Mutex;
 
-    use chrono::Utc;
+    use jiff::Timestamp;
     use tonic::async_trait;
     use uuid::Uuid;
 
@@ -512,7 +512,7 @@ mod tests {
         ) -> Result<SourceEvent, SourceEventRepositoryError> {
             Ok(SourceEvent::new(
                 Uuid::new_v4().into(),
-                Utc::now(),
+                Timestamp::now(),
                 1,
                 "test".try_into().expect("Failed to create AggregateId"),
                 "TestAggregate".to_string(),
