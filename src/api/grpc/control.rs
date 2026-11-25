@@ -1,4 +1,4 @@
-#[allow(clippy::all, clippy::pedantic, clippy::nursery)]
+#[allow(clippy::all, clippy::pedantic, clippy::nursery, funcorder_rs)]
 pub mod protocontrol {
     tonic::include_proto!("revent.v1");
 }
