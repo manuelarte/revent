@@ -27,20 +27,23 @@ pub struct Config {
     /// `server_interval_heartbeat_message` interval that the server is sending `Heartbeat` messages
     /// to check if a client is still connected.
     #[serde(
-        with = "humantime_serde",
+        deserialize_with = "duration_str::deserialize_duration",
         default = "default_server_interval_heartbeat_message"
     )]
     server_interval_heartbeat_message: Duration,
 
     /// `server_expiration_client` expiration duration with respect to the `last_seen` field in which
     /// the server sends a `HeartBeat` message to the client to check whether is online.
-    #[serde(with = "humantime_serde", default = "default_server_expiration_client")]
+    #[serde(
+        deserialize_with = "duration_str::deserialize_duration",
+        default = "default_server_expiration_client"
+    )]
     server_expiration_client: Duration,
 
     /// `server_query_response_timeout` timeout when if the server receives no response for a query
     /// it triggers `QueryTimedOut` event.
     #[serde(
-        with = "humantime_serde",
+        deserialize_with = "duration_str::deserialize_duration",
         default = "default_server_query_response_timeout"
     )]
     server_query_response_timeout: Duration,

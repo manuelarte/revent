@@ -6,7 +6,7 @@ use crate::domain::{ClientIdNotValid, Repository};
 use axum::Json;
 use axum::extract::rejection::QueryRejection;
 use axum::extract::{Path, Query, State};
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use serde::Serializer;
 use std::time::Duration;
 
@@ -67,7 +67,7 @@ pub async fn get_clients_page<R: Repository + 'static>(
         .flat_map(|item| item.iter())
         .map(|(id, info)| ClientInPageDto {
             id: id.as_str().to_string(),
-            since: (*info.since()).into(),
+            since: Timestamp::try_from(*info.since()).unwrap_or_else(|_| Timestamp::now()),
             link: format!("http://localhost:10001/api/clients/{id}"),
         })
         .collect();
@@ -130,7 +130,7 @@ pub async fn get_client_by_id<R: Repository + 'static>(
 
     Ok(Json(ClientDto {
         id: client_id.to_string(),
-        since: (*client.since()).into(),
+        since: Timestamp::try_from(*client.since()).unwrap_or_else(|_| Timestamp::now()),
         last_seen: client.last_seen().elapsed(),
         query_handlers: query_handlers.into_iter().map(Into::into).collect(),
     }))
@@ -139,14 +139,14 @@ pub async fn get_client_by_id<R: Repository + 'static>(
 #[derive(Clone, serde::Serialize)]
 pub struct ClientInPageDto {
     id: String,
-    since: DateTime<Utc>,
+    since: Timestamp,
     link: String,
 }
 
 #[derive(Clone, serde::Serialize)]
 pub struct ClientDto {
     id: String,
-    since: DateTime<Utc>,
+    since: Timestamp,
     #[serde(serialize_with = "serialize_duration_as_seconds_f64")]
     last_seen: Duration,
     query_handlers: Vec<String>,

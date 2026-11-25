@@ -4,7 +4,7 @@ use crate::domain::Repository;
 use axum::Json;
 use axum::extract::rejection::QueryRejection;
 use axum::extract::{Query, State};
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -47,7 +47,7 @@ pub async fn get_source_events<R: Repository + 'static>(
     Ok(Json(CursorPage::<SourceEventDto> {
         content: vec![SourceEventDto {
             id: Uuid::default(),
-            created_at: DateTime::default(),
+            created_at: Timestamp::default(),
             monotonic_clock: 1,
             aggregate_type: "my_type".to_string(),
             aggregate_id: "my_id".to_string(),
@@ -73,7 +73,7 @@ pub struct CursorPagination {
 #[derive(serde::Serialize)]
 pub struct SourceEventDto {
     id: Uuid,
-    created_at: DateTime<Utc>,
+    created_at: Timestamp,
     monotonic_clock: u64,
     aggregate_type: String,
     aggregate_id: String,

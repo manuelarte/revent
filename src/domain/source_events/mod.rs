@@ -1,7 +1,7 @@
 //! Client Source Events contains the struct to handle events sent by the clients.
 
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use std::fmt;
 use std::fmt::Formatter;
 use std::str::FromStr;
@@ -93,7 +93,7 @@ pub struct SourceEvent {
     /// `id` unique identifier of the event.
     id: EventId,
     /// `created_at` time when the event was stored in the server.
-    created_at: DateTime<Utc>,
+    created_at: Timestamp,
     /// `monotonic_clock` represents the monotonic clock of the event.
     monotonic_clock: u64,
     /// `aggregate_id` unique identifier of the aggregate instance.
@@ -108,7 +108,7 @@ impl SourceEvent {
     #[must_use]
     pub(crate) const fn new(
         id: EventId,
-        created_at: DateTime<Utc>,
+        created_at: Timestamp,
         monotonic_clock: u64,
         aggregate_id: AggregateId,
         aggregate_type: String,
@@ -130,7 +130,7 @@ impl SourceEvent {
     }
 
     #[must_use]
-    pub const fn created_at(&self) -> &DateTime<Utc> {
+    pub const fn created_at(&self) -> &Timestamp {
         &self.created_at
     }
 

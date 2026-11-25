@@ -2,6 +2,7 @@ use crate::domain::source_events::{
     NewSourceEvent, SourceEvent, SourceEventRepository, SourceEventRepositoryError,
 };
 use async_trait::async_trait;
+use jiff::Timestamp;
 use sqlx::migrate::MigrateError;
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::{Row, SqlitePool};
@@ -81,7 +82,12 @@ impl SourceEventRepository for RustLiteSourceEventRepository {
                 // Commit the transaction
                 match tx.commit().await {
                     Ok(()) => {
-                        let created_at = row.get("created_at");
+                        let created_at: String = row.get("created_at");
+                        let created_at = Timestamp::strptime(
+                            "%Y-%m-%d %H:%M:%S",
+                            &created_at,
+                        )
+                        .unwrap_or_else(|_| Timestamp::now());
                         let monotonic_clock = row.get("monotonic_clock");
 
                         Ok(SourceEvent::new(
